@@ -19,10 +19,10 @@ type Parser struct {
 
 	state state
 
-	onToken func(token *Token) bool
+	onToken func(*Token, *Token) bool
 }
 
-func NewParser(onToken func(token *Token) bool) *Parser {
+func NewParser(onToken func(prev, curr *Token) bool) *Parser {
 	return &Parser{
 		onToken: onToken,
 	}
@@ -38,6 +38,7 @@ func (p *Parser) Reset() {
 }
 
 func (p *Parser) scanTokens() {
+	var lastTok *Token
 	for !p.isAtEnd() {
 		p.start = p.curr
 		tok := p.scanToken()
@@ -45,9 +46,10 @@ func (p *Parser) scanTokens() {
 			if tok.Type == TokenEOF {
 				return
 			}
-			if !p.onToken(tok) {
+			if !p.onToken(lastTok, tok) {
 				return
 			}
+			lastTok = tok
 		}
 	}
 }

@@ -8,7 +8,7 @@ import (
 
 func TestParser_BasicSQL(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -69,7 +69,7 @@ func TestParser_StringLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -149,7 +149,7 @@ func TestParser_CrazyStringLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -209,7 +209,7 @@ func TestParser_NumberLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -264,7 +264,7 @@ func TestParser_Operators(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -309,7 +309,7 @@ func TestParser_HexLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				// fmt.Println(token.Type.String(), token.Lexeme)
 				tokens = append(tokens, token)
 				return true
@@ -355,7 +355,7 @@ func TestParser_BitValueLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -395,7 +395,7 @@ func TestParser_SpecialLiterals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tokens []*Token
-			p := NewParser(func(token *Token) bool {
+			p := NewParser(func(_, token *Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
@@ -416,7 +416,7 @@ func TestParser_SpecialLiterals(t *testing.T) {
 
 func TestParser_Parentheses(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -438,7 +438,7 @@ func TestParser_Parentheses(t *testing.T) {
 
 func TestParser_Commas(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -459,7 +459,7 @@ func TestParser_Commas(t *testing.T) {
 
 func TestParser_ComplexQuery(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -494,7 +494,7 @@ func TestParser_ComplexQuery(t *testing.T) {
 
 func TestParser_EmptyString(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -508,7 +508,7 @@ func TestParser_EmptyString(t *testing.T) {
 
 func TestParser_WhitespaceHandling(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -529,7 +529,7 @@ func TestParser_WhitespaceHandling(t *testing.T) {
 
 func TestParser_TokenPositions(t *testing.T) {
 	var tokens []*Token
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -551,7 +551,7 @@ func TestParser_TokenPositions(t *testing.T) {
 
 func TestParser_EarlyTermination(t *testing.T) {
 	callCount := 0
-	p := NewParser(func(token *Token) bool {
+	p := NewParser(func(_, token *Token) bool {
 		callCount++
 		return callCount < 3 // Stop after 2 tokens
 	})
@@ -585,7 +585,7 @@ func TestTokenType_String(t *testing.T) {
 }
 
 func TestParser_Reset(t *testing.T) {
-	p := NewParser(func(token *Token) bool { return true })
+	p := NewParser(func(_, token *Token) bool { return true })
 	p.Parse("SELECT * FROM users")
 
 	// Check that curr position was advanced
@@ -605,7 +605,7 @@ func BenchmarkParser_SimpleQuery(b *testing.B) {
 	query := "SELECT * FROM users WHERE id = 1"
 
 	for i := 0; i < b.N; i++ {
-		p := NewParser(func(token *Token) bool { return true })
+		p := NewParser(func(_, token *Token) bool { return true })
 		p.Parse(query)
 	}
 }
@@ -620,7 +620,7 @@ func BenchmarkParser_ComplexQuery(b *testing.B) {
 			  ORDER BY order_count DESC`
 
 	for i := 0; i < b.N; i++ {
-		p := NewParser(func(token *Token) bool { return true })
+		p := NewParser(func(_, token *Token) bool { return true })
 		p.Parse(query)
 	}
 }
