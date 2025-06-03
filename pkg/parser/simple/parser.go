@@ -58,15 +58,26 @@ func (p *Parser) scanToken() *Token {
 	c := p.advance()
 	switch c {
 	case ",":
-		pos := Pos{p.curr, p.curr + 1}
+		pos := Pos{p.curr - 1, p.curr}
 		p.commas = append(p.commas, pos)
 		return &Token{Type: TokenComma, Lexeme: c, Pos: pos}
+	// case ".":
+	// 	// // Check if this is part of a qualified name
+	// 	// next := p.peek()
+	// 	// if p.isAlpha(next) || p.isDigit(next) || next == "_" || next == "`" {
+	// 	// 	// This is part of a qualified name, let the keyword handler deal with it
+	// 	// 	p.curr-- // Backtrack to let keyword handler start from the dot
+	// 	// 	return nil
+	// 	// }
+	// 	// This is a standalone dot operator
+	// 	pos := Pos{p.curr - 1, p.curr}
+	// 	return &Token{Type: TokenOperator, Lexeme: c, Pos: pos}
 	case "(":
-		pos := Pos{p.curr, p.curr + 1}
+		pos := Pos{p.curr - 1, p.curr}
 		p.openParens = append(p.openParens, pos)
 		return &Token{Type: TokenOpenParen, Lexeme: c, Pos: pos}
 	case ")":
-		pos := Pos{p.curr, p.curr + 1}
+		pos := Pos{p.curr - 1, p.curr}
 		p.closeParens = append(p.closeParens, pos)
 		return &Token{Type: TokenCloseParen, Lexeme: c, Pos: pos}
 	case "":

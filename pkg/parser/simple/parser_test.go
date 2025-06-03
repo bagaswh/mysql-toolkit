@@ -624,3 +624,103 @@ func BenchmarkParser_ComplexQuery(b *testing.B) {
 		p.Parse(query)
 	}
 }
+
+func TestParser_CrazyKeywords(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Table names with special characters",
+			input:    "SELECT * FROM `my-table` WHERE `my.column` = 1",
+			expected: []string{"SELECT", "*", "FROM", "`my-table`", "WHERE", "`my.column`", "=", "1"},
+		},
+		{
+			name:     "Table names with numbers",
+			input:    "SELECT * FROM table_123 WHERE col_456 = 789",
+			expected: []string{"SELECT", "*", "FROM", "table_123", "WHERE", "col_456", "=", "789"},
+		},
+		{
+			name:     "Reserved keywords as identifiers",
+			input:    "SELECT `select` `from` `where` FROM `table`",
+			expected: []string{"SELECT", "`select`", "`from`", "`where`", "FROM", "`table`"},
+		},
+		{
+			name:     "Mixed case keywords and identifiers",
+			input:    "SeLeCt * FrOm TaBlE WhErE iD = 1",
+			expected: []string{"SeLeCt", "*", "FrOm", "TaBlE", "WhErE", "iD", "=", "1"},
+		},
+		{
+			name:     "Table aliases",
+			input:    "SELECT t1.id, t2.name FROM table1 AS t1 JOIN table2 t2",
+			expected: []string{"SELECT", "t1.id", ",", "t2.name", "FROM", "table1", "AS", "t1", "JOIN", "table2", "t2"},
+		},
+		{
+			name:     "Database qualified names",
+			input:    "SELECT db.table.column FROM db.table",
+			expected: []string{"SELECT", "db.table.column", "FROM", "db.table"},
+		},
+		{
+			name:     "Keywords with underscores",
+			input:    "SELECT * FROM my_table WHERE is_deleted = FALSE",
+			expected: []string{"SELECT", "*", "FROM", "my_table", "WHERE", "is_deleted", "=", "FALSE"},
+		},
+		{
+			name:     "Keywords with dots",
+			input:    "SELECT * FROM `my.schema.table` WHERE `col.name` = 'value'",
+			expected: []string{"SELECT", "*", "FROM", "`my.schema.table`", "WHERE", "`col.name`", "=", "'value'"},
+		},
+		{
+			name:     "Keywords with special characters",
+			input:    "SELECT * FROM `my@table` WHERE `col#name` = 'value'",
+			expected: []string{"SELECT", "*", "FROM", "`my@table`", "WHERE", "`col#name`", "=", "'value'"},
+		},
+		{
+			name:     "Keywords with spaces",
+			input:    "SELECT * FROM `my table` WHERE `my column` = 'value'",
+			expected: []string{"SELECT", "*", "FROM", "`my table`", "WHERE", "`my column`", "=", "'value'"},
+		},
+		{
+			name:     "Keywords with unicode",
+			input:    "SELECT * FROM `表名` WHERE `列名` = '值'",
+			expected: []string{"SELECT", "*", "FROM", "`表名`", "WHERE", "`列名`", "=", "'值'"},
+		},
+		{
+			name:     "Keywords with emojis",
+			input:    "SELECT * FROM `my_😊_table` WHERE `col_🎉_name` = 'value'",
+			expected: []string{"SELECT", "*", "FROM", "`my_😊_table`", "WHERE", "`col_🎉_name`", "=", "'value'"},
+		},
+		{
+			name:     "Keywords with multiple dots",
+			input:    "SELECT * FROM `db.schema.table.column`",
+			expected: []string{"SELECT", "*", "FROM", "`db.schema.table.column`"},
+		},
+		{
+			name:     "Keywords with backticks in names",
+			input:    "SELECT * FROM `table``name` WHERE `col``name` = 'value'",
+			expected: []string{"SELECT", "*", "FROM", "`table``name`", "WHERE", "`col``name`", "=", "'value'"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var tokens []*Token
+			p := NewParser(func(_, token *Token) bool {
+				tokens = append(tokens, token)
+				return true
+			})
+
+			p.Parse(tt.input)
+
+			var lexemes []string
+			for _, tok := range tokens {
+				lexemes = append(lexemes, tok.Lexeme)
+			}
+
+			if !reflect.DeepEqual(lexemes, tt.expected) {
+				t.Errorf("Expected %v, got %v", tt.expected, lexemes)
+			}
+		})
+	}
+}
