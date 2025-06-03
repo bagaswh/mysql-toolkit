@@ -2,6 +2,7 @@ package simple
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -62,6 +63,86 @@ func TestParser_StringLiterals(t *testing.T) {
 			name:     "Mixed quotes",
 			input:    "SELECT 'single' AND \"double\"",
 			expected: []string{"SELECT", "'single'", "AND", "\"double\""},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var tokens []*Token
+			p := NewParser(func(token *Token) bool {
+				tokens = append(tokens, token)
+				return true
+			})
+
+			p.Parse(tt.input)
+
+			var lexemes []string
+			for _, tok := range tokens {
+				lexemes = append(lexemes, tok.Lexeme)
+			}
+
+			if !reflect.DeepEqual(lexemes, tt.expected) {
+				t.Errorf("Expected %v, got %v", tt.expected, lexemes)
+			}
+		})
+	}
+}
+
+func TestParser_CrazyStringLiterals(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Empty strings",
+			input:    "SELECT '' AND \"\"",
+			expected: []string{"SELECT", "''", "AND", "\"\""},
+		},
+		{
+			name:     "Escaped quotes",
+			input:    "SELECT '\\'escaped\\'' AND \"\\\"escaped\\\"\"",
+			expected: []string{"SELECT", "'\\'escaped\\''", "AND", "\"\\\"escaped\\\"\""},
+		},
+		{
+			name:     "Mixed quotes with spaces",
+			input:    "SELECT 'hello \"world\"' AND \"hello 'world'\"",
+			expected: []string{"SELECT", "'hello \"world\"'", "AND", "\"hello 'world'\""},
+		},
+		{
+			name:     "Multiple escaped characters",
+			input:    "SELECT '\\n\\t\\r\\b\\\\'",
+			expected: []string{"SELECT", "'\\n\\t\\r\\b\\\\'"},
+		},
+		{
+			name:     "Unicode characters",
+			input:    "SELECT '你好世界' AND \"🎉🎈🎂\"",
+			expected: []string{"SELECT", "'你好世界'", "AND", "\"🎉🎈🎂\""},
+		},
+		{
+			name:     "Very long string",
+			input:    "SELECT '" + strings.Repeat("a", 1000) + "'",
+			expected: []string{"SELECT", "'" + strings.Repeat("a", 1000) + "'"},
+		},
+		{
+			name:     "String with special SQL characters",
+			input:    "SELECT 'SELECT * FROM table WHERE id = 1'",
+			expected: []string{"SELECT", "'SELECT * FROM table WHERE id = 1'"},
+		},
+		{
+			name:     "String with numbers and operators",
+			input:    "SELECT '123 + 456 = 579' AND \"10 * 20 = 200\"",
+			expected: []string{"SELECT", "'123 + 456 = 579'", "AND", "\"10 * 20 = 200\""},
+		},
+		{
+			name:     "String with multiple escaped backslashes",
+			input:    "SELECT '\\\\\\\\'",
+			expected: []string{"SELECT", "'\\\\\\\\'"},
+		},
+		{
+			name:     "String with mixed line endings",
+			input:    "SELECT 'line1\\nline2\\r\\nline3'",
+			expected: []string{"SELECT", "'line1\\nline2\\r\\nline3'"},
 		},
 	}
 

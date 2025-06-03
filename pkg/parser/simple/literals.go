@@ -7,7 +7,7 @@ import (
 func (p *Parser) literal(c string) *Token {
 	curr := p.peek()
 	if c == "'" || c == "\"" {
-		return p.stringLiteral()
+		return p.stringLiteral(c)
 	}
 	if (c == "b" || c == "B") && curr == "'" {
 		p.advance()
@@ -65,16 +65,35 @@ ret:
 	return nil
 }
 
-func (p *Parser) stringLiteral() *Token {
+func (p *Parser) stringLiteral(c string) *Token {
+	quoteType := c // either ' or "
+	escaped := false
+
 	for {
 		c := p.advance()
-		if (c == "'" || c == "\"") && p.prev() != "\\" {
+		if c == "" {
+			// Unterminated string literal
 			return &Token{
 				Type:   TokenLiteral,
 				Lexeme: p.sql[p.start:p.curr],
 				Pos:    Pos{p.start, p.curr},
 			}
 		}
+
+		if c == "\\" {
+			escaped = !escaped
+			continue
+		}
+
+		if c == quoteType && !escaped {
+			return &Token{
+				Type:   TokenLiteral,
+				Lexeme: p.sql[p.start:p.curr],
+				Pos:    Pos{p.start, p.curr},
+			}
+		}
+
+		escaped = false
 	}
 }
 
