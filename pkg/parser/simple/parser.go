@@ -24,20 +24,14 @@ type Parser struct {
 	onToken func(Token, Token) bool
 }
 
-func NewParser(onToken func(prev, curr Token) bool) *Parser {
+func NewParser() *Parser {
 	return &Parser{
-		onToken: onToken,
-		arena:   make([]byte, 1024),
+		arena: make([]byte, 1024),
 	}
-}
-
-func (p *Parser) OnToken(onToken func(prev, curr Token) bool) {
-	p.onToken = onToken
 }
 
 func (p *Parser) Parse(sql []byte) {
 	p.sql = sql
-	p.scanTokens()
 }
 
 func (p *Parser) Reset() {
@@ -48,25 +42,36 @@ func (p *Parser) GetLexeme(token Token) []byte {
 	return token.Lexeme(p.sql)
 }
 
-func (p *Parser) scanTokens() {
-	var lastTok Token
-	sql := p.sql
-	for p.curr < len(sql) {
+func (p *Parser) NextToken() Token {
+	for p.curr < len(p.sql) {
 		p.start = p.curr
-		tok := p.scanToken(sql)
+		tok := p.scanToken()
 		if tok != (Token{}) {
-			if tok.Type == TokenEOF {
-				return
-			}
-			if p.onToken != nil && !p.onToken(lastTok, tok) {
-				return
-			}
-			lastTok = tok
+			return tok
 		}
 	}
+	return EOF
 }
 
-func (p *Parser) scanToken(sql []byte) Token {
+// func (p *Parser) scanTokens() {
+// 	var lastTok Token
+// 	sql := p.sql
+// 	for p.curr < len(sql) {
+// 		p.start = p.curr
+// 		tok := p.scanToken(sql)
+// 		if tok != (Token{}) {
+// 			if tok.Type == TokenEOF {
+// 				return
+// 			}
+// 			if p.onToken != nil && !p.onToken(lastTok, tok) {
+// 				return
+// 			}
+// 			lastTok = tok
+// 		}
+// 	}
+// }
+
+func (p *Parser) scanToken() Token {
 	c := p.advance()
 	switch c {
 	case ',':

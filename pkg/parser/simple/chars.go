@@ -59,12 +59,3 @@ func isWhiteSpace(c byte) bool {
 	}
 	return false
 }
-
-func toLowerInPlace(b []byte) []byte {
-	for i := range b {
-		if 'A' <= b[i] && b[i] <= 'Z' {
-			b[i] += 'a' - 'A'
-		}
-	}
-	return b
-}

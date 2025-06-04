@@ -2,6 +2,8 @@ package simple
 
 import (
 	"bytes"
+
+	ibytes "github.com/bagaswh/mysql-toolkit/internal/bytes"
 )
 
 func (p *Parser) literal(c byte) Token {
@@ -39,8 +41,9 @@ func (p *Parser) literal(c byte) Token {
 	advanceN := 0
 	p.arena = p.arena[:5]
 	copy(p.arena[:2], []byte{c, curr})
+	ibytes.ToLowerInPlace(p.arena[:2])
 	copy(p.arena[2:], p.aheadN(2))
-	toLowerInPlace(p.arena)
+	ibytes.ToLowerInPlace(p.arena[2:])
 
 	if bytes.HasPrefix(p.arena, bytes_SQLKeyword_NULL) ||
 		bytes.HasPrefix(p.arena, bytes_SQLKeyword_True) {
@@ -53,7 +56,7 @@ func (p *Parser) literal(c byte) Token {
 	}
 
 	copy(p.arena[2:], p.aheadN(3))
-	toLowerInPlace(p.arena)
+	ibytes.ToLowerInPlace(p.arena[2:])
 
 	if bytes.HasPrefix(p.arena, bytes_SQLKeyword_False) {
 		advanceN = 4
