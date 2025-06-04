@@ -1,95 +1,100 @@
 package simple
 
 import (
-	"strings"
+	"bytes"
 )
 
-func (p *Parser) literal(c string) *Token {
+func (p *Parser) literal(c byte) Token {
+	if !maybeLiteral(c) {
+		return Token{}
+	}
+
 	curr := p.peek()
-	if c == "'" || c == "\"" {
+
+	if c == singleQuote || c == doubleQuote {
 		return p.stringLiteral(c)
 	}
-	if (c == "b" || c == "B") && curr == "'" {
+	if (c == 'b' || c == 'B') && curr == singleQuote {
 		p.advance()
 		return p.bitValueLiterals("b'")
 	}
-	if c == "0" && (curr == "B" || curr == "b") {
+	if c == '0' && (curr == 'B' || curr == 'b') {
 		p.advance()
 		return p.bitValueLiterals("0b")
 	}
-	if (c == "X" || c == "x") && curr == "'" {
+	if (c == 'X' || c == 'x') && curr == singleQuote {
 		p.advance()
 		return p.hexLiteral("x'")
 	}
-	if c == "0" && (curr == "X" || curr == "x") {
+	if c == '0' && (curr == 'X' || curr == 'x') {
 		p.advance()
 		return p.hexLiteral("0x")
 	}
-	if ((c == "-" || c == "+" || c == ".") && p.isDigit(curr)) ||
-		p.isDigit(c) {
+	if ((c == dash || c == plus || c == dot) && isDigit(curr)) ||
+		isDigit(c) {
 		return p.numberLiteral()
 	}
 
-	var tok *Token
+	var tok Token
 	advanceN := 0
-	ahead := c + curr + p.aheadN(2)
+	p.arena = p.arena[:5]
+	copy(p.arena[:2], []byte{c, curr})
+	copy(p.arena[2:], p.aheadN(2))
+	toLowerInPlace(p.arena)
 
-	if ahead == "NULL" || strings.ToLower(ahead) == "true" {
+	if bytes.HasPrefix(p.arena, bytes_SQLKeyword_NULL) ||
+		bytes.HasPrefix(p.arena, bytes_SQLKeyword_True) {
 		advanceN = 3
-		tok = &Token{
-			Type:   TokenLiteral,
-			Lexeme: p.sql[p.start : p.curr+3],
-			Pos:    Pos{p.start, p.curr},
+		tok = Token{
+			Type: TokenLiteral,
+			Pos:  Pos{p.start, p.curr + 3},
 		}
 		goto ret
 	}
 
-	ahead = c + curr + p.aheadN(3)
-	if strings.ToLower(ahead) == "false" {
+	copy(p.arena[2:], p.aheadN(3))
+	toLowerInPlace(p.arena)
+
+	if bytes.HasPrefix(p.arena, bytes_SQLKeyword_False) {
 		advanceN = 4
-		tok = &Token{
-			Type:   TokenLiteral,
-			Lexeme: p.sql[p.start : p.curr+4],
-			Pos:    Pos{p.start, p.curr},
+		tok = Token{
+			Type: TokenLiteral,
+			Pos:  Pos{p.start, p.curr + 4},
 		}
 		goto ret
 	}
 ret:
-	if tok != nil {
-		for i := 0; i < advanceN; i++ {
-			p.advance()
-		}
+	if tok != (Token{}) {
+		p.curr += advanceN
 		return tok
 	}
 
-	return nil
+	return Token{}
 }
 
-func (p *Parser) stringLiteral(c string) *Token {
+func (p *Parser) stringLiteral(c byte) Token {
 	quoteType := c // either ' or "
 	escaped := false
 
 	for {
 		c := p.advance()
-		if c == "" {
+		if c == 0 {
 			// Unterminated string literal
-			return &Token{
-				Type:   TokenLiteral,
-				Lexeme: p.sql[p.start:p.curr],
-				Pos:    Pos{p.start, p.curr},
+			return Token{
+				Type: TokenLiteral,
+				Pos:  Pos{p.start, p.curr},
 			}
 		}
 
-		if c == "\\" {
+		if c == backslash {
 			escaped = !escaped
 			continue
 		}
 
 		if c == quoteType && !escaped {
-			return &Token{
-				Type:   TokenLiteral,
-				Lexeme: p.sql[p.start:p.curr],
-				Pos:    Pos{p.start, p.curr},
+			return Token{
+				Type: TokenLiteral,
+				Pos:  Pos{p.start, p.curr},
 			}
 		}
 
@@ -97,45 +102,42 @@ func (p *Parser) stringLiteral(c string) *Token {
 	}
 }
 
-func (p *Parser) numberLiteral() *Token {
+func (p *Parser) numberLiteral() Token {
 	for {
 		c := p.advance()
 		curr := p.peek()
-		if (p.isDigit(c) ||
-			(c == "-" && p.isDigit(curr)) ||
-			(c == "." && p.isDigit(curr))) ||
-			(c == "E" && (p.isDigit(curr) || curr == "-")) {
+		if (isDigit(c) ||
+			(c == dash && isDigit(curr)) ||
+			(c == dot && isDigit(curr))) ||
+			(c == 'E' && (isDigit(curr) || curr == dash)) {
 			continue
 		}
-		if !p.isDigit(c) {
-			return &Token{
-				Type:   TokenLiteral,
-				Lexeme: p.sql[p.start:p.curr],
-				Pos:    Pos{p.start, p.curr},
+		if !isDigit(c) {
+			return Token{
+				Type: TokenLiteral,
+				Pos:  Pos{p.start, p.curr},
 			}
 		}
 	}
 }
 
-func (p *Parser) bitValueLiterals(start string) *Token {
-	var tok *Token
+func (p *Parser) bitValueLiterals(start string) Token {
+	var tok Token
 	for {
 		c := p.advance()
 		if start == "b'" {
-			if c == "'" {
-				tok = &Token{
-					Type:   TokenLiteral,
-					Lexeme: p.sql[p.start:p.curr],
-					Pos:    Pos{p.start, p.curr},
+			if c == '\'' {
+				tok = Token{
+					Type: TokenLiteral,
+					Pos:  Pos{p.start, p.curr},
 				}
 				break
 			}
 		} else if start == "0b" {
-			if p.isWhiteSpace(c) || p.isAtEnd() {
-				tok = &Token{
-					Type:   TokenLiteral,
-					Lexeme: p.sql[p.start:p.curr],
-					Pos:    Pos{p.start, p.curr},
+			if isWhiteSpace(c) || p.isAtEnd() {
+				tok = Token{
+					Type: TokenLiteral,
+					Pos:  Pos{p.start, p.curr},
 				}
 				break
 			}
@@ -147,25 +149,23 @@ func (p *Parser) bitValueLiterals(start string) *Token {
 	return tok
 }
 
-func (p *Parser) hexLiteral(hexStart string) *Token {
-	var tok *Token
+func (p *Parser) hexLiteral(hexStart string) Token {
+	var tok Token
 	for {
 		c := p.advance()
 		if hexStart == "x'" {
-			if c == "'" {
-				tok = &Token{
-					Type:   TokenLiteral,
-					Lexeme: p.sql[p.start:p.curr],
-					Pos:    Pos{p.start, p.curr},
+			if c == '\'' {
+				tok = Token{
+					Type: TokenLiteral,
+					Pos:  Pos{p.start, p.curr},
 				}
 				break
 			}
 		} else if hexStart == "0x" {
-			if p.isWhiteSpace(c) || p.isAtEnd() {
-				tok = &Token{
-					Type:   TokenLiteral,
-					Lexeme: p.sql[p.start:p.curr],
-					Pos:    Pos{p.start, p.curr},
+			if isWhiteSpace(c) || p.isAtEnd() {
+				tok = Token{
+					Type: TokenLiteral,
+					Pos:  Pos{p.start, p.curr},
 				}
 				break
 			}

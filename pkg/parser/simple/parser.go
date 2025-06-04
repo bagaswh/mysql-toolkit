@@ -7,28 +7,35 @@ type Pos struct {
 }
 
 type Parser struct {
-	literalsPos []Pos
-	keywordsPos []Pos
-	commas      []Pos
-	openParens  []Pos
-	closeParens []Pos
-	operators   []Pos
+	// literalsPos []Pos
+	// keywordsPos []Pos
+	// commas      []Pos
+	// openParens  []Pos
+	// closeParens []Pos
+	// operators   []Pos
 
-	sql         string
+	sql []byte
+
+	// small "arena"
+	arena []byte
+
 	start, curr int
 
-	state state
-
-	onToken func(*Token, *Token) bool
+	onToken func(Token, Token) bool
 }
 
-func NewParser(onToken func(prev, curr *Token) bool) *Parser {
+func NewParser(onToken func(prev, curr Token) bool) *Parser {
 	return &Parser{
 		onToken: onToken,
+		arena:   make([]byte, 1024),
 	}
 }
 
-func (p *Parser) Parse(sql string) {
+func (p *Parser) OnToken(onToken func(prev, curr Token) bool) {
+	p.onToken = onToken
+}
+
+func (p *Parser) Parse(sql []byte) {
 	p.sql = sql
 	p.scanTokens()
 }
@@ -37,16 +44,21 @@ func (p *Parser) Reset() {
 	p.curr = 0
 }
 
+func (p *Parser) GetLexeme(token Token) []byte {
+	return token.Lexeme(p.sql)
+}
+
 func (p *Parser) scanTokens() {
-	var lastTok *Token
-	for !p.isAtEnd() {
+	var lastTok Token
+	sql := p.sql
+	for p.curr < len(sql) {
 		p.start = p.curr
-		tok := p.scanToken()
-		if tok != nil {
+		tok := p.scanToken(sql)
+		if tok != (Token{}) {
 			if tok.Type == TokenEOF {
 				return
 			}
-			if !p.onToken(lastTok, tok) {
+			if p.onToken != nil && !p.onToken(lastTok, tok) {
 				return
 			}
 			lastTok = tok
@@ -54,122 +66,79 @@ func (p *Parser) scanTokens() {
 	}
 }
 
-func (p *Parser) scanToken() *Token {
+func (p *Parser) scanToken(sql []byte) Token {
 	c := p.advance()
 	switch c {
-	case ",":
+	case ',':
 		pos := Pos{p.curr - 1, p.curr}
-		p.commas = append(p.commas, pos)
-		return &Token{Type: TokenComma, Lexeme: c, Pos: pos}
-	// case ".":
-	// 	// // Check if this is part of a qualified name
-	// 	// next := p.peek()
-	// 	// if p.isAlpha(next) || p.isDigit(next) || next == "_" || next == "`" {
-	// 	// 	// This is part of a qualified name, let the keyword handler deal with it
-	// 	// 	p.curr-- // Backtrack to let keyword handler start from the dot
-	// 	// 	return nil
-	// 	// }
-	// 	// This is a standalone dot operator
-	// 	pos := Pos{p.curr - 1, p.curr}
-	// 	return &Token{Type: TokenOperator, Lexeme: c, Pos: pos}
-	case "(":
+		// p.commas = append(p.commas, pos)
+		return Token{Type: TokenComma, Pos: pos}
+	case '(':
 		pos := Pos{p.curr - 1, p.curr}
-		p.openParens = append(p.openParens, pos)
-		return &Token{Type: TokenOpenParen, Lexeme: c, Pos: pos}
-	case ")":
+		// p.openParens = append(p.openParens, pos)
+		return Token{Type: TokenOpenParen, Pos: pos}
+	case ')':
 		pos := Pos{p.curr - 1, p.curr}
-		p.closeParens = append(p.closeParens, pos)
-		return &Token{Type: TokenCloseParen, Lexeme: c, Pos: pos}
-	case "":
+		// p.closeParens = append(p.closeParens, pos)
+		return Token{Type: TokenCloseParen, Pos: pos}
+	case 0:
 		return EOF
 	default:
-		if p.isWhiteSpace(c) {
-			return nil
+		if isWhiteSpace(c) {
+			return Token{}
 		}
 
 		// try literal
 		tok := p.literal(c)
-		if tok != nil {
-			p.literalsPos = append(p.literalsPos, tok.Pos)
+		if tok != (Token{}) {
+			// p.literalsPos = append(p.literalsPos, tok.Pos)
 			return tok
 		}
 
 		tok = p.keyword(c)
-		if tok != nil {
-			p.keywordsPos = append(p.keywordsPos, tok.Pos)
+		if tok != (Token{}) {
+			// p.keywordsPos = append(p.keywordsPos, tok.Pos)
 			return tok
 		}
 
 		// try operator
 		tok = p.operator(c)
-		if tok != nil {
-			p.operators = append(p.operators, tok.Pos)
+		if tok != (Token{}) {
+			// p.operators = append(p.operators, tok.Pos)
 			return tok
 		}
 	}
-	return nil
+	return (Token{})
 }
 
-func (p *Parser) advance() string {
+func (p *Parser) advance() byte {
 	if p.isAtEnd() {
-		return ""
+		return 0
 	}
 	c := p.sql[p.curr]
 	p.curr++
-	return string(c)
+	return c
 }
 
-func (p *Parser) peek() string {
+func (p *Parser) peek() byte {
 	if p.isAtEnd() {
-		return ""
+		return 0
 	}
-	return string(p.sql[p.curr])
+	return p.sql[p.curr]
 }
 
-func (p *Parser) prev() string {
-	if p.curr-1 < 0 {
-		return ""
+func (p *Parser) ahead() byte {
+	if p.curr+1 >= len(p.sql) {
+		return 0
 	}
-	return string(p.sql[p.curr-1])
+	return p.sql[p.curr+1]
 }
 
-func (p *Parser) ahead() string {
-	if p.isAtEnd() || p.curr+1 >= len(p.sql) {
-		return ""
+func (p *Parser) aheadN(n int) []byte {
+	if p.curr+n >= len(p.sql) {
+		return nil
 	}
-	return string(p.sql[p.curr+1])
-}
-
-func (p *Parser) aheadN(n int) string {
-	if p.isAtEnd() || p.curr+n >= len(p.sql) {
-		return ""
-	}
-	return string(p.sql[p.curr+1 : p.curr+n+1])
-}
-
-func (p *Parser) isAlpha(c string) bool {
-	if len(c) == 0 {
-		return false
-	}
-	return ((c[0] >= 65 && c[0] <= 90) || (c[0] >= 97 && c[0] <= 122))
-}
-
-func (p *Parser) isDigit(c string) bool {
-	if len(c) == 0 {
-		return false
-	}
-	return c[0] >= 48 && c[0] <= 57
-}
-
-func (p *Parser) isWhiteSpace(c string) bool {
-	if len(c) == 0 {
-		return false
-	}
-	switch c[0] {
-	case ' ', '\t', '\n', '\r':
-		return true
-	}
-	return false
+	return p.sql[p.curr+1 : p.curr+n+1]
 }
 
 func (p *Parser) isAtEnd() bool {

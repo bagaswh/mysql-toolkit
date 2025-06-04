@@ -7,13 +7,13 @@ import (
 )
 
 func TestParser_BasicSQL(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
-	p.Parse("SELECT * FROM users WHERE id = 1")
+	p.Parse([]byte("SELECT * FROM users WHERE id = 1"))
 
 	expected := []struct {
 		tokenType TokenType
@@ -37,8 +37,8 @@ func TestParser_BasicSQL(t *testing.T) {
 		if tok.Type != expected[i].tokenType {
 			t.Errorf("Token %d: expected type %s, got %s", i, expected[i].tokenType.String(), tok.Type.String())
 		}
-		if tok.Lexeme != expected[i].lexeme {
-			t.Errorf("Token %d: expected lexeme '%s', got '%s'", i, expected[i].lexeme, tok.Lexeme)
+		if string(p.GetLexeme(tok)) != expected[i].lexeme {
+			t.Errorf("Token %d: expected lexeme '%s', got '%s'", i, expected[i].lexeme, string(p.GetLexeme(tok)))
 		}
 	}
 }
@@ -68,17 +68,17 @@ func TestParser_StringLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(string(p.GetLexeme(tok))))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {
@@ -148,17 +148,17 @@ func TestParser_CrazyStringLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(p.GetLexeme(tok)))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {
@@ -208,17 +208,17 @@ func TestParser_NumberLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(p.GetLexeme(tok)))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {
@@ -263,13 +263,13 @@ func TestParser_Operators(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var types []TokenType
 			for _, tok := range tokens {
@@ -308,18 +308,18 @@ func TestParser_HexLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				// fmt.Println(token.Type.String(), token.Lexeme)
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(p.GetLexeme(tok)))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {
@@ -354,17 +354,17 @@ func TestParser_BitValueLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(p.GetLexeme(tok)))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {
@@ -394,13 +394,13 @@ func TestParser_SpecialLiterals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var types []TokenType
 			for _, tok := range tokens {
@@ -415,13 +415,13 @@ func TestParser_SpecialLiterals(t *testing.T) {
 }
 
 func TestParser_Parentheses(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
-	p.Parse("SELECT COUNT(*) FROM (SELECT id FROM users)")
+	p.Parse([]byte("SELECT COUNT(*) FROM (SELECT id FROM users)"))
 
 	var parenTypes []TokenType
 	for _, tok := range tokens {
@@ -437,13 +437,13 @@ func TestParser_Parentheses(t *testing.T) {
 }
 
 func TestParser_Commas(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
-	p.Parse("SELECT id, name, email FROM users")
+	p.Parse([]byte("SELECT id, name, email FROM users"))
 
 	commaCount := 0
 	for _, tok := range tokens {
@@ -458,8 +458,8 @@ func TestParser_Commas(t *testing.T) {
 }
 
 func TestParser_ComplexQuery(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
@@ -472,7 +472,7 @@ func TestParser_ComplexQuery(t *testing.T) {
 			  HAVING COUNT(o.id) > 5 
 			  ORDER BY order_count DESC`
 
-	p.Parse(query)
+	p.Parse([]byte(query))
 
 	// Count different token types
 	counts := make(map[TokenType]int)
@@ -493,13 +493,13 @@ func TestParser_ComplexQuery(t *testing.T) {
 }
 
 func TestParser_EmptyString(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
-	p.Parse("")
+	p.Parse([]byte(""))
 
 	if len(tokens) != 0 {
 		t.Errorf("Expected no tokens for empty string, got %d", len(tokens))
@@ -507,19 +507,19 @@ func TestParser_EmptyString(t *testing.T) {
 }
 
 func TestParser_WhitespaceHandling(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
 	// Test with various whitespace
-	p.Parse("   SELECT   *   FROM   table   ")
+	p.Parse([]byte("   SELECT   *   FROM   table   "))
 
 	expected := []string{"SELECT", "*", "FROM", "table"}
 	var lexemes []string
 	for _, tok := range tokens {
-		lexemes = append(lexemes, tok.Lexeme)
+		lexemes = append(lexemes, string(p.GetLexeme(tok)))
 	}
 
 	if !reflect.DeepEqual(lexemes, expected) {
@@ -528,13 +528,13 @@ func TestParser_WhitespaceHandling(t *testing.T) {
 }
 
 func TestParser_TokenPositions(t *testing.T) {
-	var tokens []*Token
-	p := NewParser(func(_, token *Token) bool {
+	var tokens []Token
+	p := NewParser(func(_, token Token) bool {
 		tokens = append(tokens, token)
 		return true
 	})
 
-	p.Parse("SELECT id")
+	p.Parse([]byte("SELECT id"))
 
 	if len(tokens) != 2 {
 		t.Fatalf("Expected 2 tokens, got %d", len(tokens))
@@ -551,12 +551,12 @@ func TestParser_TokenPositions(t *testing.T) {
 
 func TestParser_EarlyTermination(t *testing.T) {
 	callCount := 0
-	p := NewParser(func(_, token *Token) bool {
+	p := NewParser(func(_, token Token) bool {
 		callCount++
 		return callCount < 3 // Stop after 2 tokens
 	})
 
-	p.Parse("SELECT * FROM users WHERE id = 1")
+	p.Parse([]byte("SELECT * FROM users WHERE id = 1"))
 
 	if callCount != 3 {
 		t.Errorf("Expected parser to stop after 3 calls, but got %d calls", callCount)
@@ -585,8 +585,8 @@ func TestTokenType_String(t *testing.T) {
 }
 
 func TestParser_Reset(t *testing.T) {
-	p := NewParser(func(_, token *Token) bool { return true })
-	p.Parse("SELECT * FROM users")
+	p := NewParser(func(_, token Token) bool { return true })
+	p.Parse([]byte("SELECT * FROM users"))
 
 	// Check that curr position was advanced
 	if p.curr == 0 {
@@ -602,25 +602,26 @@ func TestParser_Reset(t *testing.T) {
 }
 
 func BenchmarkParser_SimpleQuery(b *testing.B) {
-	query := "SELECT * FROM users WHERE id = 1"
+	query := []byte("SELECT * FROM users WHERE id = 1")
 
+	p := NewParser(func(_, token Token) bool { return true })
 	for i := 0; i < b.N; i++ {
-		p := NewParser(func(_, token *Token) bool { return true })
 		p.Parse(query)
 	}
 }
 
 func BenchmarkParser_ComplexQuery(b *testing.B) {
-	query := `SELECT u.id, u.name, COUNT(o.id) as order_count 
+	query := []byte(`SELECT u.id, u.name, COUNT(o.id) as order_count 
 			  FROM users u 
 			  LEFT JOIN orders o ON u.id = o.user_id 
 			  WHERE u.created_at >= '2023-01-01' 
 			  GROUP BY u.id, u.name 
 			  HAVING COUNT(o.id) > 5 
-			  ORDER BY order_count DESC`
+			  ORDER BY order_count DESC`)
 
+	p := NewParser(nil)
+	p.Reset()
 	for i := 0; i < b.N; i++ {
-		p := NewParser(func(_, token *Token) bool { return true })
 		p.Parse(query)
 	}
 }
@@ -705,17 +706,17 @@ func TestParser_CrazyKeywords(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []*Token
-			p := NewParser(func(_, token *Token) bool {
+			var tokens []Token
+			p := NewParser(func(_, token Token) bool {
 				tokens = append(tokens, token)
 				return true
 			})
 
-			p.Parse(tt.input)
+			p.Parse([]byte(tt.input))
 
 			var lexemes []string
 			for _, tok := range tokens {
-				lexemes = append(lexemes, tok.Lexeme)
+				lexemes = append(lexemes, string(p.GetLexeme(tok)))
 			}
 
 			if !reflect.DeepEqual(lexemes, tt.expected) {

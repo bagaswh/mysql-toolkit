@@ -3,7 +3,8 @@ package simple
 type TokenType uint16
 
 const (
-	TokenOpenParen TokenType = iota
+	_ TokenType = iota
+	TokenOpenParen
 	TokenCloseParen
 	TokenComma
 	TokenKeyword
@@ -30,10 +31,17 @@ func (t TokenType) String() string {
 	return "unknown"
 }
 
-var EOF = &Token{Type: TokenEOF, Lexeme: "", Pos: Pos{0, 0}}
+var EOF = Token{Type: TokenEOF, Pos: Pos{0, 0}}
+var EmptyToken Token
 
 type Token struct {
-	Type   TokenType
-	Lexeme string
-	Pos    Pos
+	Type TokenType
+	Pos  Pos
+}
+
+func (t Token) Lexeme(source []byte) []byte {
+	if t.Pos.start >= 0 && t.Pos.end <= len(source) {
+		return source[t.Pos.start:t.Pos.end]
+	}
+	return []byte{}
 }
