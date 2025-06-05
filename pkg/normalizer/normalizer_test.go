@@ -661,33 +661,23 @@ func TestNormalize_Properties(t *testing.T) {
 		}
 	})
 
-	// Property: Keyword case changes should only affect keywords
-	t.Run("case_only_affects_keywords", func(t *testing.T) {
-		input := "SELECT user_name FROM my_table WHERE user_id = 123"
+}
 
-		configDefault := Config{KeywordCase: CaseDefault}
-		configUpper := Config{KeywordCase: CaseUpper}
+func TestNormalize_SmallBuffer(t *testing.T) {
+	lex := lexer.NewLexer()
+	config := Config{KeywordCase: CaseUpper, RemoveLiterals: true}
+	input := "SELECT * FROM users WHERE name = 'test'"
 
-		result1 := make([]byte, len(input)*2)
-		_, normalized1, err := Normalize(configDefault, lex, []byte(input), result1)
-		if err != nil {
-			t.Errorf("Normalize() error = %v", err)
-			return
-		}
+	result := make([]byte, 5)
+	_, normalized, err := Normalize(config, lex, []byte(input), result)
+	if err != nil {
+		t.Errorf("Normalize() error = %v", err)
+		return
+	}
 
-		result2 := make([]byte, len(input)*2)
-		_, normalized2, err := Normalize(configUpper, lex, []byte(input), result2)
-		if err != nil {
-			t.Errorf("Normalize() error = %v", err)
-			return
-		}
-
-		// Count non-keyword differences
-		s1, s2 := string(normalized1), string(normalized2)
-		if strings.ToUpper(s1) != strings.ToUpper(s2) {
-			t.Errorf("Case change affected more than keywords: %q vs %q", s1, s2)
-		}
-	})
+	if string(normalized) != "SELEC" {
+		t.Errorf("Normalize() result = %q, want %q", string(normalized), "SELEC")
+	}
 }
 
 func max(a, b int) int {

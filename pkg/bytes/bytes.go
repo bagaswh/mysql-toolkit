@@ -21,11 +21,10 @@ func ToUpperInPlace(b []byte) []byte {
 func PutBytes(dst []byte, bs ...[]byte) (int, []byte) {
 	off := 0
 	for _, b := range bs {
-		copy(dst[off:], b)
+		off += copy(dst[off:], b)
 		if len(b)+off > cap(dst) {
 			return off, dst
 		}
-		off += len(b)
 	}
 	return off, dst
 }

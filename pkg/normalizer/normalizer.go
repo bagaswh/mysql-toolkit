@@ -73,6 +73,9 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 
 		if isSpaceAble(config, prev, tok) {
 			n, _ = bytes.PutBytes(result[off:], []byte{' '})
+			if n == 0 {
+				break
+			}
 			off += n
 		}
 
@@ -90,6 +93,9 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 			} else {
 				n, _ = tok.Lexeme(sql, result[off:])
 			}
+		}
+		if n == 0 {
+			break
 		}
 		off += n
 
