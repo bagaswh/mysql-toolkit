@@ -47,6 +47,10 @@ var (
 	questionMark = []byte("?")
 )
 
+var (
+	ErrBufferTooSmall = errors.New("buffer too small")
+)
+
 func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int, []byte, error) {
 	lex.Parse(sql)
 	lex.Reset()
@@ -74,7 +78,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 		if isSpaceAble(config, prev, tok) {
 			n, _ = bytes.PutBytes(result[off:], []byte{' '})
 			if n == 0 {
-				break
+				return off, result[:off], ErrBufferTooSmall
 			}
 			off += n
 		}
@@ -95,7 +99,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 			}
 		}
 		if n == 0 {
-			break
+			return off, result[:off], ErrBufferTooSmall
 		}
 		off += n
 
