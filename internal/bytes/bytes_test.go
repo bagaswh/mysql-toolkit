@@ -5,6 +5,68 @@ import (
 	"testing"
 )
 
+func TestPutBytes(t *testing.T) {
+	testCases := []struct {
+		name        string
+		createDst   func() []byte
+		input       [][]byte
+		expected    []byte
+		copiedCount int
+	}{
+		{
+			name: "empty slice",
+			createDst: func() []byte {
+				return make([]byte, 0)
+			},
+			input:       [][]byte{},
+			expected:    []byte{},
+			copiedCount: 0,
+		},
+		{
+			name: "dst is larger than input",
+			createDst: func() []byte {
+				return make([]byte, 20)
+			},
+			input: [][]byte{
+				{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+				{11, 12, 13},
+			},
+			expected: []byte{
+				1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+				11, 12, 13, 0, 0, 0, 0, 0, 0, 0,
+			},
+			copiedCount: 13,
+		},
+		{
+			name: "dst is smaller than input",
+			createDst: func() []byte {
+				return make([]byte, 5)
+			},
+			input: [][]byte{
+				{1, 2, 3, 4, 5},
+				{6, 7, 8, 9},
+			},
+			expected: []byte{
+				1, 2, 3, 4, 5,
+			},
+			copiedCount: 5,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := tc.createDst()
+			n, result := PutBytes(dst[:], tc.input...)
+			if !bytes.Equal(result, tc.expected) {
+				t.Errorf("PutBytes() = %q; want %q", dst, tc.expected)
+			}
+			if n != tc.copiedCount {
+				t.Errorf("PutBytes() copied %d bytes; want %d", n, tc.copiedCount)
+			}
+		})
+	}
+}
+
 // TestToLowerInPlace tests the ToLowerInPlace function.
 func TestToLowerInPlace(t *testing.T) {
 	testCases := []struct {
