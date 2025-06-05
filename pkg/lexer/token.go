@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"github.com/bagaswh/mysql-toolkit/internal/bytes"
+	"github.com/bagaswh/mysql-toolkit/pkg/bytes"
 )
 
 type TokenType uint16

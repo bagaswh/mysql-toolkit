@@ -3,7 +3,7 @@ package normalizer
 import (
 	"errors"
 
-	"github.com/bagaswh/mysql-toolkit/internal/bytes"
+	"github.com/bagaswh/mysql-toolkit/pkg/bytes"
 	"github.com/bagaswh/mysql-toolkit/pkg/lexer"
 )
 

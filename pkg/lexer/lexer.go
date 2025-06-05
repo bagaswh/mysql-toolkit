@@ -1,6 +1,6 @@
 package lexer
 
-import "github.com/bagaswh/mysql-toolkit/internal/bytes"
+import "github.com/bagaswh/mysql-toolkit/pkg/bytes"
 
 type state byte
 
