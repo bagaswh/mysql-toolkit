@@ -50,8 +50,8 @@ func TestNormalize(t *testing.T) {
 				KeywordCase:    CaseUpper,
 				RemoveLiterals: true,
 			},
-			input:    "SELECT u.id, u.name, p.title FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
-			expected: "SELECT U.ID, U.NAME, P.TITLE FROM USERS U JOIN POSTS P ON U.ID = P.USER_ID WHERE U.AGE > ?",
+			input:    "SELECT u.id, u.name, p.title, FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
+			expected: "SELECT U.ID, U.NAME, P.TITLE, FROM USERS U JOIN POSTS P ON U.ID = P.USER_ID WHERE U.AGE > ?",
 		},
 		{
 			name: "complex query with joins with backticks",
@@ -60,8 +60,11 @@ func TestNormalize(t *testing.T) {
 				RemoveLiterals:        true,
 				PutBacktickOnKeywords: true,
 			},
-			input:    "SELECT u.id, u.name, p.title FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
-			expected: "SELECT `U`.`ID`, `U`.`NAME`, `P`.`TITLE` FROM `USERS` `U` JOIN `POSTS` `P` ON `U`.`ID` = `P`.`USER_ID` WHERE `U`.`AGE` > ?",
+			// try to put
+			// builtin keyword after dot here
+			// should not be treated as a keyword, so should be backticked
+			input:    "SELECT u.id, u.name, p.title, p.select FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
+			expected: "SELECT `U`.`ID`, `U`.`NAME`, `P`.`TITLE`, `P`.`SELECT` FROM `USERS` `U` JOIN `POSTS` `P` ON `U`.`ID` = `P`.`USER_ID` WHERE `U`.`AGE` > ?",
 		},
 		{
 			name: "insert statement",

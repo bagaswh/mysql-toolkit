@@ -92,7 +92,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 		if tok.Type == lexer.TokenLiteral && config.RemoveLiterals {
 			n, _ = bytes.PutBytes(result[off:], questionMark)
 		} else {
-			isBacktickable := tok.IsBacktickAble()
+			isBacktickable := tok.IsBacktickAble() || (tok.IsKeyword() && prev.Type == lexer.TokenDot)
 			if isBacktickable && config.PutBacktickOnKeywords {
 				n, _ = tok.LexemeWithBacktick(sql, result[off:])
 			} else if isBacktickable && config.RemoveBacktickOnKeywords {
