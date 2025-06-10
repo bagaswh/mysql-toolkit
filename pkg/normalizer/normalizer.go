@@ -31,6 +31,9 @@ func isSpaceAble(config Config, prev lexer.Token, token lexer.Token) bool {
 	if config.PutSpaceBeforeOpenParen && token.Type == lexer.TokenOpenParen {
 		return true
 	}
+	if prev.Type == lexer.TokenDot || token.Type == lexer.TokenDot {
+		return false
+	}
 	if prev.IsKeyword() && token.Type == lexer.TokenOpenParen {
 		return false
 	}

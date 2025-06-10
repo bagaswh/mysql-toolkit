@@ -54,6 +54,16 @@ func TestNormalize(t *testing.T) {
 			expected: "SELECT U.ID, U.NAME, P.TITLE FROM USERS U JOIN POSTS P ON U.ID = P.USER_ID WHERE U.AGE > ?",
 		},
 		{
+			name: "complex query with joins with backticks",
+			config: Config{
+				KeywordCase:           CaseUpper,
+				RemoveLiterals:        true,
+				PutBacktickOnKeywords: true,
+			},
+			input:    "SELECT u.id, u.name, p.title FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
+			expected: "SELECT `U`.`ID`, `U`.`NAME`, `P`.`TITLE` FROM `USERS` `U` JOIN `POSTS` `P` ON `U`.`ID` = `P`.`USER_ID` WHERE `U`.`AGE` > ?",
+		},
+		{
 			name: "insert statement",
 			config: Config{
 				KeywordCase:    CaseLower,

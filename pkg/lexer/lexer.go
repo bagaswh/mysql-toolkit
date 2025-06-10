@@ -93,6 +93,11 @@ func (l *Lexer) scanToken() Token {
 			return tok
 		}
 
+		if c == '.' {
+			pos := Pos{l.curr - 1, l.curr}
+			return Token{Type: TokenDot, Pos: pos}
+		}
+
 		tok = l.keyword(c)
 		if tok != (Token{}) {
 			return tok
@@ -146,31 +151,33 @@ func (l *Lexer) keyword(c byte) Token {
 		return Token{}
 	}
 
+	var attr Attr
+
 	start := l.start
 	for {
 		c = l.peek()
-		ahead := l.ahead()
+		// ahead := l.ahead()
 		if isAlpha(c) ||
 			isDigit(c) ||
 			c == underscore {
 			l.advance()
 			continue
 		}
-		if c == dot && (isAlpha(ahead) || isDigit(ahead)) {
-			// dots in keyword indicate it's a db/table/column reference
-			l.advance()
-			continue
-		}
+		// if c == dot && (isAlpha(ahead) || isDigit(ahead)) {
+		// 	// dots in keyword indicate it's a db/table/column reference
+		// 	l.advance()
+		// 	continue
+		// }
 		break
 	}
 	return Token{
 		Type: TokenKeyword,
 		Pos:  Pos{start, l.curr},
-		Attr: l.getKeywordAttr(start),
+		Attr: l.getKeywordAttr(attr, start),
 	}
 }
 
-func (l *Lexer) getKeywordAttr(start int) Attr {
+func (l *Lexer) getKeywordAttr(currentAttr Attr, start int) Attr {
 	var attr Attr
 	arena := l.arena[:l.curr-start]
 	bytes.PutBytes(arena, l.sql[start:l.curr])
@@ -179,12 +186,14 @@ func (l *Lexer) getKeywordAttr(start int) Attr {
 		attr |= TokenAttrBuiltIn
 		attr |= keyTyp.Attr
 	}
-	return attr
+	return currentAttr | attr
 }
 
 func (l *Lexer) quotedIdentifier() Token {
 	start := l.start
 	escaped := false
+
+	var attr Attr
 
 	for {
 		ch := l.advance()
@@ -192,7 +201,7 @@ func (l *Lexer) quotedIdentifier() Token {
 			return Token{
 				Type: TokenKeyword,
 				Pos:  Pos{},
-				Attr: l.getKeywordAttr(start),
+				Attr: l.getKeywordAttr(attr, start),
 			}
 		}
 		c := ch[0]
@@ -211,7 +220,7 @@ func (l *Lexer) quotedIdentifier() Token {
 			return Token{
 				Type: TokenKeyword,
 				Pos:  Pos{start, l.curr},
-				Attr: l.getKeywordAttr(start),
+				Attr: l.getKeywordAttr(attr, start),
 			}
 		}
 

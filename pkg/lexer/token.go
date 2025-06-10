@@ -11,6 +11,7 @@ const (
 	TokenOpenParen
 	TokenCloseParen
 	TokenComma
+	TokenDot
 	TokenStar
 	TokenKeyword
 	TokenLiteral
@@ -47,6 +48,7 @@ type Attr uint64
 
 const (
 	TokenAttrBuiltIn Attr = 1 << iota
+	TokenKeywordIdentifierWithDot
 )
 
 type Token struct {

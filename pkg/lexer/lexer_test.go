@@ -653,12 +653,12 @@ func TestLexer_CrazyKeywords(t *testing.T) {
 		{
 			name:     "Table aliases",
 			input:    "SELECT t1.id, t2.name FROM table1 AS t1 JOIN table2 t2",
-			expected: []string{"SELECT", "t1.id", ",", "t2.name", "FROM", "table1", "AS", "t1", "JOIN", "table2", "t2"},
+			expected: []string{"SELECT", "t1", ".", "id", ",", "t2", ".", "name", "FROM", "table1", "AS", "t1", "JOIN", "table2", "t2"},
 		},
 		{
 			name:     "Database qualified names",
 			input:    "SELECT db.table.column FROM db.table",
-			expected: []string{"SELECT", "db.table.column", "FROM", "db.table"},
+			expected: []string{"SELECT", "db", ".", "table", ".", "column", "FROM", "db", ".", "table"},
 		},
 		{
 			name:     "Keywords with underscores",
