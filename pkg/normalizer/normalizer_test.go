@@ -56,15 +56,15 @@ func TestNormalize(t *testing.T) {
 		{
 			name: "complex query with joins with backticks",
 			config: Config{
-				KeywordCase:           CaseUpper,
-				RemoveLiterals:        true,
-				PutBacktickOnKeywords: true,
+				KeywordCase:    CaseUpper,
+				RemoveLiterals: true,
+				// PutBacktickOnKeywords: true,
 			},
 			// try to put
 			// builtin keyword after dot here
 			// should not be treated as a keyword, so should be backticked
 			input:    "SELECT u.id, u.name, p.title, p.select FROM users u JOIN posts p ON u.id = p.user_id WHERE u.age > 18",
-			expected: "SELECT `U`.`ID`, `U`.`NAME`, `P`.`TITLE`, `P`.`SELECT` FROM `USERS` `U` JOIN `POSTS` `P` ON `U`.`ID` = `P`.`USER_ID` WHERE `U`.`AGE` > ?",
+			expected: "SELECT U.ID, U.NAME, P.TITLE, P.SELECT FROM USERS U JOIN POSTS P ON U.ID = P.USER_ID WHERE U.AGE > ?",
 		},
 		{
 			name: "insert statement",
@@ -105,24 +105,24 @@ func TestNormalize(t *testing.T) {
 		{
 			name: "function calls",
 			config: Config{
-				KeywordCase:             CaseLower,
-				RemoveLiterals:          true,
-				PutSpaceBeforeOpenParen: true,
-				PutBacktickOnKeywords:   true,
+				KeywordCase:    CaseLower,
+				RemoveLiterals: true,
+				// PutSpaceBeforeOpenParen: true,
+				// PutBacktickOnKeywords:   true,
 			},
 			input:    "SELECT COUNT(*), MAX(age), MIN(created_at) FROM users WHERE name LIKE '%john%'",
-			expected: "select `count` (`*`), `max` (`age`), `min` (`created_at`) from `users` where `name` like ?",
+			expected: "select count(*), max(age), min(created_at) from users where name like ?",
 		},
 		{
 			name: "window functions",
 			config: Config{
-				KeywordCase:             CaseUpper,
-				RemoveLiterals:          false,
-				PutSpaceBeforeOpenParen: true,
-				PutBacktickOnKeywords:   true,
+				KeywordCase:    CaseUpper,
+				RemoveLiterals: false,
+				// PutSpaceBeforeOpenParen: true,
+				// PutBacktickOnKeywords:   true,
 			},
 			input:    "SELECT name, ROW_NUMBER () OVER (ORDER BY age DESC) as `rank` FROM users",
-			expected: "SELECT `NAME`, ROW_NUMBER () OVER (ORDER BY `AGE` DESC) AS `RANK` FROM `USERS`",
+			expected: "SELECT NAME, ROW_NUMBER() OVER(ORDER BY AGE DESC) AS `RANK` FROM USERS",
 		},
 		{
 			name: "empty query",
@@ -221,7 +221,7 @@ func TestNormalize_AllConfigCombinations(t *testing.T) {
 				"upper_false_false_false_false":   "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `AGE` = 25",
 				"upper_true_false_false_false":    "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `AGE` = ?",
 				"upper_false_true_false_false":    "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `AGE` = 25",
-				"upper_false_false_true_false":    "SELECT USER_ID, FULL_NAME FROM USER_TABLE WHERE AGE = 25",
+				"upper_false_false_true_false":    "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `AGE` = 25",
 				"upper_false_true_false_true":     "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `AGE` = 25",
 			},
 		},
@@ -230,8 +230,8 @@ func TestNormalize_AllConfigCombinations(t *testing.T) {
 			input: "SELECT COUNT(*), MAX(age) FROM users WHERE name LIKE 'John%'",
 			expected: map[string]string{
 				"default_false_false_false_false": "SELECT COUNT(*), MAX(age) FROM users WHERE name LIKE 'John%'",
-				"lower_true_true_false_true":      "select `count` (`*`), `max` (`age`) from `users` where `name` like ?",
-				"upper_true_true_false_true":      "SELECT `COUNT` (`*`), `MAX` (`AGE`) FROM `USERS` WHERE `NAME` LIKE ?",
+				"lower_true_true_false_true":      "select count(*), max(age) from users where name like ?",
+				"upper_true_true_false_true":      "SELECT COUNT(*), MAX(AGE) FROM USERS WHERE NAME LIKE ?",
 			},
 		},
 		{
@@ -239,15 +239,15 @@ func TestNormalize_AllConfigCombinations(t *testing.T) {
 			input: "SELECT user_id, full_name FROM user_table WHERE `status` = 'active'",
 			expected: map[string]string{
 				"default_false_false_false_false": "SELECT user_id, full_name FROM user_table WHERE `status` = 'active'",
-				"upper_false_true_false_false":    "SELECT `USER_ID`, `FULL_NAME` FROM `USER_TABLE` WHERE `STATUS` = 'active'",
-				"lower_true_true_false_false":     "select `user_id`, `full_name` from `user_table` where `status` = ?",
+				"upper_false_true_false_false":    "SELECT USER_ID, FULL_NAME FROM USER_TABLE WHERE `STATUS` = 'active'",
+				"lower_true_true_false_false":     "select user_id, full_name from user_table where `status` = ?",
 			},
 		},
 		{
 			name:  "mixed_quotes_and_literals",
 			input: `SELECT * FROM users WHERE name = "John's Data" AND age = 25 AND score = 99.5`,
 			expected: map[string]string{
-				"upper_true_true_false_false":   "SELECT `*` FROM `USERS` WHERE `NAME` = ? AND `AGE` = ? AND `SCORE` = ?",
+				"upper_true_true_false_false":   "SELECT * FROM USERS WHERE NAME = ? AND AGE = ? AND SCORE = ?",
 				"lower_false_false_false_false": `select * from users where name = "John's Data" and age = 25 and score = 99.5`,
 			},
 		},
@@ -270,11 +270,11 @@ func TestNormalize_AllConfigCombinations(t *testing.T) {
 						}
 
 						config := Config{
-							KeywordCase:              keywordCase,
-							RemoveLiterals:           removeLiterals,
-							PutBacktickOnKeywords:    putBacktick,
-							RemoveBacktickOnKeywords: removeBacktick,
-							PutSpaceBeforeOpenParen:  spaceBeforeParen,
+							KeywordCase:    keywordCase,
+							RemoveLiterals: removeLiterals,
+							// PutBacktickOnKeywords:    putBacktick,
+							// RemoveBacktickOnKeywords: removeBacktick,
+							// PutSpaceBeforeOpenParen: spaceBeforeParen,
 						}
 
 						configKey := fmt.Sprintf("%s_%t_%t_%t_%t",
@@ -312,47 +312,47 @@ func TestNormalize_AllConfigCombinations(t *testing.T) {
 }
 
 // Test invalid configurations should return errors
-func TestNormalize_InvalidConfigurations(t *testing.T) {
-	lex := lexer.NewLexer()
-	input := []byte("SELECT COUNT(*) FROM users")
-	result := make([]byte, len(input)*3)
+// func TestNormalize_InvalidConfigurations(t *testing.T) {
+// 	lex := lexer.NewLexer()
+// 	input := []byte("SELECT COUNT(*) FROM users")
+// 	result := make([]byte, len(input)*3)
 
-	testCases := []struct {
-		name   string
-		config Config
-		errMsg string
-	}{
-		{
-			name: "both_put_and_remove_backticks",
-			config: Config{
-				PutBacktickOnKeywords:    true,
-				RemoveBacktickOnKeywords: true,
-			},
-			errMsg: "PutBacktickOnKeywords and RemoveBacktickOnKeywords cannot be both true",
-		},
-		{
-			name: "space_before_paren_without_backticks",
-			config: Config{
-				PutSpaceBeforeOpenParen: true,
-				PutBacktickOnKeywords:   false,
-			},
-			errMsg: "PutSpaceBeforeOpenParen requires PutBacktickOnKeywords to be true",
-		},
-	}
+// 	testCases := []struct {
+// 		name   string
+// 		config Config
+// 		errMsg string
+// 	}{
+// 		{
+// 			name:   "both_put_and_remove_backticks",
+// 			config: Config{
+// 				// PutBacktickOnKeywords:    true,
+// 				// RemoveBacktickOnKeywords: true,
+// 			},
+// 			errMsg: "PutBacktickOnKeywords and RemoveBacktickOnKeywords cannot be both true",
+// 		},
+// 		{
+// 			name:   "space_before_paren_without_backticks",
+// 			config: Config{
+// 				// PutSpaceBeforeOpenParen: true,
+// 				// PutBacktickOnKeywords:   false,
+// 			},
+// 			errMsg: "PutSpaceBeforeOpenParen requires PutBacktickOnKeywords to be true",
+// 		},
+// 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, _, err := Normalize(tc.config, lex, input, result)
-			if err == nil {
-				t.Errorf("Expected error for invalid config, but got nil")
-				return
-			}
-			if !strings.Contains(err.Error(), tc.errMsg) {
-				t.Errorf("Expected error message to contain %q, got %q", tc.errMsg, err.Error())
-			}
-		})
-	}
-}
+// 	for _, tc := range testCases {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			_, _, err := Normalize(tc.config, lex, input, result)
+// 			if err == nil {
+// 				t.Errorf("Expected error for invalid config, but got nil")
+// 				return
+// 			}
+// 			if !strings.Contains(err.Error(), tc.errMsg) {
+// 				t.Errorf("Expected error message to contain %q, got %q", tc.errMsg, err.Error())
+// 			}
+// 		})
+// 	}
+// }
 
 func getCaseName(c Case) string {
 	switch c {
@@ -558,10 +558,10 @@ func FuzzNormalize(f *testing.F) {
 		{KeywordCase: CaseLower, RemoveLiterals: false},
 		{KeywordCase: CaseUpper, RemoveLiterals: false},
 		{KeywordCase: CaseUpper, RemoveLiterals: true},
-		{KeywordCase: CaseLower, RemoveLiterals: true, PutBacktickOnKeywords: true},
-		{KeywordCase: CaseUpper, RemoveLiterals: true, RemoveBacktickOnKeywords: true},
-		{KeywordCase: CaseDefault, RemoveLiterals: false, PutBacktickOnKeywords: true, PutSpaceBeforeOpenParen: true},
-		{KeywordCase: CaseUpper, RemoveLiterals: true, PutBacktickOnKeywords: true, PutSpaceBeforeOpenParen: true},
+		{KeywordCase: CaseLower, RemoveLiterals: true /* PutBacktickOnKeywords: true */},
+		{KeywordCase: CaseUpper, RemoveLiterals: true /*  RemoveBacktickOnKeywords: true */},
+		{KeywordCase: CaseDefault, RemoveLiterals: false /*  PutBacktickOnKeywords: true */ /* PutSpaceBeforeOpenParen: true */},
+		{KeywordCase: CaseUpper, RemoveLiterals: true /* PutBacktickOnKeywords: true */ /* PutSpaceBeforeOpenParen: true */},
 	}
 
 	lex := lexer.NewLexer()

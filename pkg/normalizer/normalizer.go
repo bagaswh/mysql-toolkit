@@ -16,20 +16,17 @@ const (
 )
 
 type Config struct {
-	KeywordCase              Case
-	RemoveLiterals           bool
-	PutBacktickOnKeywords    bool
-	RemoveBacktickOnKeywords bool
-	PutSpaceBeforeOpenParen  bool
+	KeywordCase    Case
+	RemoveLiterals bool
+	// PutBacktickOnKeywords    bool
+	// RemoveBacktickOnKeywords bool
+	// PutSpaceBeforeOpenParen bool
 }
 
 // Determine if current and previous token is space-able.
 func isSpaceAble(config Config, prev lexer.Token, token lexer.Token) bool {
 	if prev == (lexer.Token{}) {
 		return false
-	}
-	if config.PutSpaceBeforeOpenParen && token.Type == lexer.TokenOpenParen {
-		return true
 	}
 	if prev.Type == lexer.TokenDot || token.Type == lexer.TokenDot {
 		return false
@@ -43,6 +40,9 @@ func isSpaceAble(config Config, prev lexer.Token, token lexer.Token) bool {
 	if prev.Type == lexer.TokenOpenParen {
 		return false
 	}
+	// if config.PutSpaceBeforeOpenParen && token.Type == lexer.TokenOpenParen {
+	// 	return true
+	// }
 	return true
 }
 
@@ -60,15 +60,15 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 	var prev lexer.Token
 	off := 0
 
-	// Putting space before paren can cause trouble if keywords are not bactick'ed.
-	// For example, COUNT (*) is invalid syntax, but COUNT (`*`) and COUNT(*) are valid.
-	if config.PutSpaceBeforeOpenParen && !config.PutBacktickOnKeywords {
-		return 0, nil, errors.New("PutSpaceBeforeOpenParen requires PutBacktickOnKeywords to be true")
-	}
+	// I can't reliably PutSpaceBeforeOpenParen or PutBacktickOnKeywods since this requires parsing.
+	// if config.PutSpaceBeforeOpenParen && !config.PutBacktickOnKeywords {
+	// 	// For example, COUNT (*) is invalid syntax, but COUNT (`*`) and COUNT(*) are valid.
+	// 	return 0, nil, errors.New("PutSpaceBeforeOpenParen requires PutBacktickOnKeywords to be true")
+	// }
 
-	if config.PutBacktickOnKeywords && config.RemoveBacktickOnKeywords {
-		return 0, nil, errors.New("PutBacktickOnKeywords and RemoveBacktickOnKeywords cannot be both true")
-	}
+	// if config.PutBacktickOnKeywords && config.RemoveBacktickOnKeywords {
+	// 	return 0, nil, errors.New("PutBacktickOnKeywords and RemoveBacktickOnKeywords cannot be both true")
+	// }
 
 	for {
 		tok := lex.NextToken()
@@ -92,14 +92,14 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 		if tok.Type == lexer.TokenLiteral && config.RemoveLiterals {
 			n, _ = bytes.PutBytes(result[off:], questionMark)
 		} else {
-			isBacktickable := tok.IsBacktickAble() || (tok.IsKeyword() && prev.Type == lexer.TokenDot)
-			if isBacktickable && config.PutBacktickOnKeywords {
-				n, _ = tok.LexemeWithBacktick(sql, result[off:])
-			} else if isBacktickable && config.RemoveBacktickOnKeywords {
-				n, _ = tok.LexemeWithRemovedBacktick(sql, result[off:])
-			} else {
-				n, _ = tok.Lexeme(sql, result[off:])
-			}
+			// isBacktickable := tok.IsBacktickAble() || (tok.IsKeyword() && prev.Type == lexer.TokenDot)
+			// if isBacktickable && config.PutBacktickOnKeywords {
+			// n, _ = tok.LexemeWithBacktick(sql, result[off:])
+			// } else if isBacktickable && config.RemoveBacktickOnKeywords {
+			n, _ = tok.LexemeWithRemovedBacktick(sql, result[off:])
+			// } else {
+			n, _ = tok.Lexeme(sql, result[off:])
+			// }
 		}
 		if n == 0 {
 			return off, result[:off], ErrBufferTooSmall

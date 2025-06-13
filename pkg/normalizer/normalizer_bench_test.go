@@ -38,18 +38,18 @@ var benchConfigs = []struct {
 	{
 		name: "FullFeatures",
 		config: Config{
-			KeywordCase:             CaseUpper,
-			RemoveLiterals:          true,
-			PutBacktickOnKeywords:   true,
-			PutSpaceBeforeOpenParen: true,
+			KeywordCase:    CaseUpper,
+			RemoveLiterals: true,
+			// PutBacktickOnKeywords:   true,
+			// PutSpaceBeforeOpenParen: true,
 		},
 	},
 	{
 		name: "RemoveBackticks",
 		config: Config{
-			KeywordCase:              CaseLower,
-			RemoveLiterals:           true,
-			RemoveBacktickOnKeywords: true,
+			KeywordCase:    CaseLower,
+			RemoveLiterals: true,
+			// RemoveBacktickOnKeywords: true,
 		},
 	},
 }

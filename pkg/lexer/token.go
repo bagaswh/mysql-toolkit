@@ -121,5 +121,5 @@ func (t Token) LexemeWithBacktick(source []byte, result []byte) (int, []byte) {
 }
 
 func (t Token) IsBacktickAble() bool {
-	return t.IsIdentifier() || t.Type == TokenStar
+	return t.IsIdentifier()
 }

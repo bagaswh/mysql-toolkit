@@ -13,6 +13,9 @@ type BuiltInKeywordType struct {
 }
 
 var _builtinnKeywords = map[string]BuiltInKeywordType{
+	// builtin functions
+
+	// keywords
 	"ADD":                            BuiltInKeywordType{},
 	"ALL":                            BuiltInKeywordType{},
 	"ALTER":                          BuiltInKeywordType{},
