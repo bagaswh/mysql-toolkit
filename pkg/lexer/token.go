@@ -13,6 +13,7 @@ const (
 	TokenComma
 	TokenDot
 	TokenStar
+	TokenComment
 	TokenKeyword
 	TokenLiteral
 	TokenOperator
@@ -35,6 +36,8 @@ func (t TokenType) String() string {
 		return "TokenOperator"
 	case TokenStar:
 		return "TokenStar"
+	case TokenComment:
+		return "TokenComment"
 	case TokenEOF:
 		return "TokenEOF"
 	}

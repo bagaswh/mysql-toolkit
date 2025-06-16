@@ -1,6 +1,8 @@
 package lexer
 
-import "github.com/bagaswh/mysql-toolkit/pkg/bytes"
+import (
+	"github.com/bagaswh/mysql-toolkit/pkg/bytes"
+)
 
 type state byte
 
@@ -87,8 +89,14 @@ func (l *Lexer) scanToken() Token {
 			return Token{}
 		}
 
+		// try comment
+		tok := l.comment(c)
+		if tok != (Token{}) {
+			return tok
+		}
+
 		// try literal
-		tok := l.literal(c)
+		tok = l.literal(c)
 		if tok != (Token{}) {
 			return tok
 		}
@@ -110,6 +118,72 @@ func (l *Lexer) scanToken() Token {
 		}
 	}
 	return (Token{})
+}
+
+func (l *Lexer) comment(c byte) Token {
+	if c == '#' {
+		return l.lineComment()
+	}
+	next := l.peek()
+	if c == '-' && next == '-' {
+		return l.lineComment()
+	}
+	if c == '/' && next == '*' {
+		l.stepForwardN(2)
+		return l.blockComment()
+	}
+	return Token{}
+}
+
+func (l *Lexer) blockComment() Token {
+	depth := 1 // to handle mested block comment
+	for {
+		ch := l.advance()
+		next := l.peek()
+		if ch == nil {
+			return Token{
+				Type: TokenComment,
+				Pos:  Pos{l.start, l.curr},
+			}
+		}
+		c := ch[0]
+		if c == '/' && next == '*' {
+			l.stepForwardN(1)
+			depth++
+			// fmt.Println("nested comment in", depth, string(l.sql[l.start:l.curr]))
+			continue
+		}
+		if c == '*' && next == '/' {
+			l.stepForwardN(1)
+			depth--
+			// fmt.Println("nested comment exit", depth, string(l.sql[l.start:l.curr]))
+			if depth <= 0 {
+				return Token{
+					Type: TokenComment,
+					Pos:  Pos{l.start, l.curr},
+				}
+			}
+		}
+	}
+}
+
+func (l *Lexer) lineComment() Token {
+	for {
+		ch := l.advance()
+		if ch == nil {
+			return Token{
+				Type: TokenComment,
+				Pos:  Pos{l.start, l.curr},
+			}
+		}
+		c := ch[0]
+		if c == '\n' {
+			return Token{
+				Type: TokenComment,
+				Pos:  Pos{l.start, l.curr - 1},
+			}
+		}
+	}
 }
 
 func (l *Lexer) operator(c byte) Token {
@@ -363,6 +437,13 @@ func (l *Lexer) stepForward() {
 		return
 	}
 	l.curr++
+}
+
+func (l *Lexer) stepForwardN(n int) {
+	if l.isAtEnd() {
+		return
+	}
+	l.curr += n
 }
 
 func (l *Lexer) advance() []byte {

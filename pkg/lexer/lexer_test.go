@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"gotest.tools/assert"
 )
 
 func init() {
@@ -718,6 +720,138 @@ func TestLexer_CrazyKeywords(t *testing.T) {
 			if !reflect.DeepEqual(lexemes, tt.expected) {
 				t.Errorf("Expected %v, got %v", tt.expected, lexemes)
 			}
+		})
+	}
+}
+
+func TestLexer_Comment(t *testing.T) {
+	tests := []struct {
+		name               string
+		sql                string
+		expected           []string
+		expectedTokenTypes []TokenType
+	}{
+		{
+			name:     "single line comment",
+			sql:      "SELECT * FROM users WHERE id = 1 -- comment",
+			expected: []string{"SELECT", "*", "FROM", "users", "WHERE", "id", "=", "1", "-- comment"},
+			expectedTokenTypes: []TokenType{
+				TokenKeyword, TokenStar, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral,
+				TokenComment,
+			},
+		},
+		{
+			name:     "block comment",
+			sql:      "SELECT * FROM users WHERE id = 1 /* comment */",
+			expected: []string{"SELECT", "*", "FROM", "users", "WHERE", "id", "=", "1", "/* comment */"},
+			expectedTokenTypes: []TokenType{
+				TokenKeyword, TokenStar, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral,
+				TokenComment,
+			},
+		},
+		{
+			name:     "line comment",
+			sql:      "SELECT * FROM users WHERE id = 1 # comment",
+			expected: []string{"SELECT", "*", "FROM", "users", "WHERE", "id", "=", "1", "# comment"},
+			expectedTokenTypes: []TokenType{
+				TokenKeyword, TokenStar, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral,
+				TokenComment,
+			},
+		},
+		{
+			name: "comment in the middle of query",
+			sql: `
+				select
+					-- 1=1
+					, foo.bar,
+					#2=2,
+					baz,
+					/*
+						long and
+						/* nested */
+						comment
+						/* another
+							/* nested
+							/* craziness */
+							itu di mana sih*/bingung gweh*/*/
+					qux -- 3=3
+					, #4=4
+				from
+					foo
+				where
+					-- 5=5
+					foo.bar = #2=2
+					and
+					baz = #3=3
+					and
+					qux = #4=4
+			`,
+			expected: []string{
+				"select",
+				"-- 1=1",
+				",",
+				"foo", ".", "bar",
+				",",
+				"#2=2,",
+				"baz",
+				",",
+				`/*
+						long and
+						/* nested */
+						comment
+						/* another
+							/* nested
+							/* craziness */
+							itu di mana sih*/bingung gweh*/*/`,
+				"qux",
+				"-- 3=3",
+				",",
+				"#4=4",
+				"from",
+				"foo",
+				"where",
+				"-- 5=5",
+				"foo", ".", "bar", "=", "#2=2",
+				"and",
+				"baz", "=", "#3=3",
+				"and",
+				"qux", "=", "#4=4",
+			},
+			expectedTokenTypes: []TokenType{
+				TokenKeyword, TokenComma, TokenComment, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral,
+				TokenComma, TokenKeyword, TokenComment, TokenComment, TokenComment, TokenComment, TokenComment, TokenComment,
+				TokenComma, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral, TokenComma, TokenComment,
+				TokenComma, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral, TokenComma, TokenComment,
+				TokenKeyword, TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral, TokenComma, TokenComment,
+				TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral, TokenComma, TokenComment,
+				TokenKeyword, TokenKeyword, TokenKeyword, TokenOperator, TokenLiteral, TokenComma, TokenComment,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := NewLexer()
+			l.Parse([]byte(tt.sql))
+
+			var lexemes []string
+			for {
+				tok := l.NextToken()
+				if tok.Type == TokenEOF {
+					break
+				}
+				// if tok.Type == TokenComment {
+				// 	fmt.Println("----LEXEME--")
+				// 	fmt.Println(string(l.GetLexeme(tok)))
+				// 	fmt.Println()
+				// }
+				lexemes = append(lexemes, string(l.GetLexeme(tok)))
+			}
+
+			// for _, lexeme := range lexemes {
+			// }
+
+			assert.DeepEqual(t, tt.expected, lexemes)
 		})
 	}
 }

@@ -28,6 +28,9 @@ func isSpaceAble(config Config, prev lexer.Token, token lexer.Token) bool {
 	if prev == (lexer.Token{}) {
 		return false
 	}
+	if token.Type == lexer.TokenComment {
+		return false
+	}
 	if prev.Type == lexer.TokenDot || token.Type == lexer.TokenDot {
 		return false
 	}
@@ -60,16 +63,6 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 	var prev lexer.Token
 	off := 0
 
-	// I can't reliably PutSpaceBeforeOpenParen or PutBacktickOnKeywods since this requires parsing.
-	// if config.PutSpaceBeforeOpenParen && !config.PutBacktickOnKeywords {
-	// 	// For example, COUNT (*) is invalid syntax, but COUNT (`*`) and COUNT(*) are valid.
-	// 	return 0, nil, errors.New("PutSpaceBeforeOpenParen requires PutBacktickOnKeywords to be true")
-	// }
-
-	// if config.PutBacktickOnKeywords && config.RemoveBacktickOnKeywords {
-	// 	return 0, nil, errors.New("PutBacktickOnKeywords and RemoveBacktickOnKeywords cannot be both true")
-	// }
-
 	for {
 		tok := lex.NextToken()
 		if tok.Type == lexer.TokenEOF {
@@ -86,20 +79,15 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 			off += n
 		}
 
-		// origLen := len(result)]
-
 		n = 0
 		if tok.Type == lexer.TokenLiteral && config.RemoveLiterals {
 			n, _ = bytes.PutBytes(result[off:], questionMark)
+		} else if tok.Type == lexer.TokenComment {
+			// skip comments
+			goto end
 		} else {
-			// isBacktickable := tok.IsBacktickAble() || (tok.IsKeyword() && prev.Type == lexer.TokenDot)
-			// if isBacktickable && config.PutBacktickOnKeywords {
-			// n, _ = tok.LexemeWithBacktick(sql, result[off:])
-			// } else if isBacktickable && config.RemoveBacktickOnKeywords {
 			n, _ = tok.LexemeWithRemovedBacktick(sql, result[off:])
-			// } else {
 			n, _ = tok.Lexeme(sql, result[off:])
-			// }
 		}
 		if n == 0 {
 			return off, result[:off], ErrBufferTooSmall
@@ -113,7 +101,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 				bytes.ToUpperInPlace(result[off-n : off])
 			}
 		}
-
+	end:
 		prev = tok
 	}
 	return off, result[:off], nil
