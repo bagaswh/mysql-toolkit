@@ -70,6 +70,8 @@ func (l *Lexer) scanToken() Token {
 	}
 	c := ch[0]
 	switch c {
+	case backslash:
+		return l.backslash()
 	case '*':
 		pos := Pos{l.curr - 1, l.curr}
 		return Token{Type: TokenStar, Pos: pos}
@@ -118,6 +120,28 @@ func (l *Lexer) scanToken() Token {
 		}
 	}
 	return (Token{})
+}
+
+func (l *Lexer) backslash() Token {
+	// currently we are in a escaped char, so it's safe to step forward
+	l.stepForward()
+
+	for {
+		ch := l.peek()
+		if ch == 0 {
+			return Token{
+				Type: TokenBackslash,
+				Pos:  Pos{l.start, l.curr},
+			}
+		}
+		if ch != '\\' {
+			return Token{
+				Type: TokenBackslash,
+				Pos:  Pos{l.start, l.curr},
+			}
+		}
+		l.stepForwardN(2)
+	}
 }
 
 func (l *Lexer) comment(c byte) Token {

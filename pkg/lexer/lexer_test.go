@@ -724,6 +724,95 @@ func TestLexer_CrazyKeywords(t *testing.T) {
 	}
 }
 
+func TestLexer_Backslash(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Backslash",
+			input:    `SELECT \ FROM users`,
+			expected: []string{"SELECT", `\ `, "FROM", "users"},
+		},
+		{
+			name:     "Backslash with escaped backslash",
+			input:    `SELECT \\ FROM users`,
+			expected: []string{"SELECT", `\\`, "FROM", "users"},
+		},
+		{
+			name:     "Backslash with escaped backslash and escaped backslash",
+			input:    `SELECT \\\\ FROM users`,
+			expected: []string{"SELECT", `\\\\`, "FROM", "users"},
+		},
+		{
+			name: "All kinds of backslashes 1",
+			input: `
+				SELECT
+					\\,
+					\,
+					\\\\,
+					\\n,
+					\\r,
+					\\t,
+					\\b,
+					\\Z,
+					\\N,
+					\N,
+					\_
+			`,
+			expected: []string{
+				"SELECT",
+				`\\`,
+				",",
+				`\,`,
+				`\\\\`,
+				",",
+				`\\`,
+				"n",
+				",",
+				`\\`,
+				"r",
+				",",
+				`\\`,
+				"t",
+				",",
+				`\\`,
+				"b",
+				",",
+				`\\`,
+				"Z",
+				",",
+				`\\`,
+				"N",
+				",",
+				`\N`,
+				",",
+				`\_`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var tokens []Token
+			l := NewLexer()
+
+			l.Parse([]byte(tt.input))
+			tokens = addIntoTokenSlice(tokens, l)
+
+			var lexemes []string
+			for _, tok := range tokens {
+				lexemes = append(lexemes, string(l.GetLexeme(tok)))
+			}
+
+			if !reflect.DeepEqual(lexemes, tt.expected) {
+				t.Errorf("Expected %v, got %v", tt.expected, lexemes)
+			}
+		})
+	}
+}
+
 func TestLexer_Comment(t *testing.T) {
 	tests := []struct {
 		name               string
