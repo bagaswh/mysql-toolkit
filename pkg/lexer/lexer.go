@@ -278,7 +278,7 @@ func (l *Lexer) keyword(c byte) Token {
 func (l *Lexer) getKeywordAttr(currentAttr Attr, start int) Attr {
 	var attr Attr
 	arena := l.arena[:l.curr-start]
-	bytes.PutBytes(arena, l.sql[start:l.curr])
+	copy(arena, l.sql[start:l.curr])
 	bytes.ToUpperInPlace(arena)
 	if keyTyp, ok := isBuiltInKeyword(arena); ok {
 		attr |= TokenAttrBuiltIn

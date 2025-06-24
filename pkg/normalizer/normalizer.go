@@ -72,7 +72,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 		var n int
 
 		if isSpaceAble(config, prev, tok) {
-			n, _ = bytes.PutBytes(result[off:], []byte{' '})
+			n = copy(result[off:], []byte{' '})
 			if n == 0 {
 				return off, result[:off], ErrBufferTooSmall
 			}
@@ -81,7 +81,7 @@ func Normalize(config Config, lex *lexer.Lexer, sql []byte, result []byte) (int,
 
 		n = 0
 		if tok.Type == lexer.TokenLiteral && config.RemoveLiterals {
-			n, _ = bytes.PutBytes(result[off:], questionMark)
+			n = copy(result[off:], questionMark)
 		} else if tok.Type == lexer.TokenComment {
 			// skip comments
 			goto end

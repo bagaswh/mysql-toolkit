@@ -1,9 +1,5 @@
 package lexer
 
-import (
-	"github.com/bagaswh/mysql-toolkit/pkg/bytes"
-)
-
 type TokenType uint16
 
 const (
@@ -65,7 +61,8 @@ type Token struct {
 
 func (t Token) Lexeme(source []byte, result []byte) (int, []byte) {
 	if t.Pos.start >= 0 && t.Pos.end <= len(source) && t.Pos.end > t.Pos.start {
-		return bytes.PutBytes(result, source[t.Pos.start:t.Pos.end])
+		n := copy(result, source[t.Pos.start:t.Pos.end])
+		return n, result[:n]
 	}
 	return 0, result
 }
@@ -111,7 +108,8 @@ func (t Token) IsQuotedWithBacktick(source []byte) bool {
 func (t Token) LexemeWithRemovedBacktick(source []byte, result []byte) (int, []byte) {
 	if t.Pos.end-t.Pos.start > 1 {
 		if t.IsQuotedWithBacktick(source) {
-			return bytes.PutBytes(result, source[t.Pos.start+1:t.Pos.end-1])
+			n := copy(result, source[t.Pos.start+1:t.Pos.end-1])
+			return n, result[:n]
 		}
 	}
 	return t.Lexeme(source, result)
@@ -123,7 +121,10 @@ func (t Token) LexemeWithBacktick(source []byte, result []byte) (int, []byte) {
 			return t.Lexeme(source, result)
 		}
 	}
-	return bytes.PutBytes(result, []byte{'`'}, source[t.Pos.start:t.Pos.end], []byte{'`'})
+	n := copy(result, []byte{'`'})
+	n += copy(result[:n], source[t.Pos.start:t.Pos.end])
+	n += copy(result[:n], []byte{'`'})
+	return n, result[:n]
 }
 
 func (t Token) IsBacktickAble() bool {

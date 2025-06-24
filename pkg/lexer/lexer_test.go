@@ -791,6 +791,14 @@ func TestLexer_Backslash(t *testing.T) {
 				`\_`,
 			},
 		},
+		{
+			name:  "Consecutive backslashes",
+			input: `\n\t\t\t\tSELECT `,
+			expected: []string{
+				`\n\t\t\t\t`,
+				`SELECT`,
+			},
+		},
 	}
 
 	for _, tt := range tests {
